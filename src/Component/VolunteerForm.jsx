@@ -1,4 +1,5 @@
 import { useState } from "react";
+import VolunteerModal from "./VolunteerModal";
 
 const VolunteerForm = () => {
   const [form, setForm] = useState({
@@ -20,6 +21,8 @@ const VolunteerForm = () => {
     timeCommitment: "",
   });
   const [loading, setLoading] = useState(false);
+  const [submittedData, setSubmittedData] = useState(null); // store backend response
+  const [showModal, setShowModal] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -41,6 +44,10 @@ const VolunteerForm = () => {
       if (res.ok) {
         alert(data?.message || "✅ Form submitted successfully!");
         console.log("Server Response:", data);
+
+        setSubmittedData(data.data); // store the response volunteer details
+        console.log("🚀 ~ handleSubmit ~ data.data:", data.data);
+        setShowModal(true);
 
         setForm({
           fullName: "",
@@ -354,6 +361,13 @@ const VolunteerForm = () => {
           {loading ? "Submitting..." : "Submit Application"}
         </button>
       </form>
+
+      {showModal && submittedData && (
+        <VolunteerModal
+          onClose={() => setShowModal(false)}
+          volunteer={submittedData}
+        />
+      )}
     </div>
   );
 };
