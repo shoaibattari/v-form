@@ -26,7 +26,10 @@ const StudentRegistrationForm = () => {
       },
     },
   };
+
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submittedData, setSubmittedData] = useState(null);
   const [form, setForm] = useState({
     campus: "",
     course: "",
@@ -44,13 +47,13 @@ const StudentRegistrationForm = () => {
     profileImage: null,
   });
 
-  // Derived lists
+  // Derived dropdowns
   const selectedCampus = campusData[form.campus];
   const courseList = selectedCampus ? Object.keys(selectedCampus.courses) : [];
   const timeList =
     selectedCampus && form.course ? selectedCampus.courses[form.course] : [];
 
-  // handle input change
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === "campus") {
@@ -64,15 +67,66 @@ const StudentRegistrationForm = () => {
     }
   };
 
+  // Show confirmation modal
   const handleSubmit = (e) => {
     e.preventDefault();
     setShowModal(true);
   };
 
-  const confirmSubmit = () => {
+  // Confirm and send data to backend
+  const confirmSubmit = async (confirmedData) => {
+    const finalData = confirmedData || form; // use data from modal or current form
     setShowModal(false);
-    alert("✅ Registration Confirmed and Submitted Successfully!");
-    console.log("Form Submitted:", form);
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      Object.entries(finalData).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+
+      const res = await fetch(
+        "http://localhost:3001/student-registration/add",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data?.message || "✅ Registration submitted successfully!");
+        console.log("Server Response:", data);
+
+        setSubmittedData(data.data);
+
+        // Reset form
+        setForm({
+          campus: "",
+          course: "",
+          favTime: "",
+          fullName: "",
+          guardianName: "",
+          contact: "",
+          email: "",
+          cnic: "",
+          gender: "",
+          dob: "",
+          qualification: "",
+          address: "",
+          city: "",
+          profileImage: null,
+        });
+      } else {
+        alert(`❌ Error: ${data.message || "Something went wrong"}`);
+        console.error("Error:", data);
+      }
+    } catch (err) {
+      alert("❌ Something went wrong while submitting the form!");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -106,7 +160,7 @@ const StudentRegistrationForm = () => {
             </select>
           </div>
 
-          {/* Course (depends on Campus) */}
+          {/* Course */}
           <div>
             <label className="font-semibold">Course *</label>
             <select
@@ -128,7 +182,7 @@ const StudentRegistrationForm = () => {
             </select>
           </div>
 
-          {/* Favourite Time (depends on Course) */}
+          {/* Favourite Time */}
           <div>
             <label className="font-semibold">Your Favourite Time? *</label>
             <select
@@ -151,7 +205,7 @@ const StudentRegistrationForm = () => {
           </div>
         </div>
 
-        {/* ================== Rest of the Form ================== */}
+        {/* ================== Rest of Form ================== */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div>
             <label className="font-semibold">Full Name *</label>
@@ -285,7 +339,7 @@ const StudentRegistrationForm = () => {
 
           <div className="md:col-span-3">
             <label className="font-semibold">
-              Passport Size Profile Image (Face Front and Decent Picture)
+              Passport Size Profile Image (Face Front)
             </label>
             <input
               type="file"
@@ -300,13 +354,15 @@ const StudentRegistrationForm = () => {
         <div className="text-center mt-6">
           <button
             type="submit"
-            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition"
+            disabled={loading}
+            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition disabled:opacity-70"
           >
-            Submit Form
+            {loading ? "Submitting..." : "Submit Form"}
           </button>
         </div>
       </form>
 
+      {/* ✅ Confirmation Modal */}
       {showModal && (
         <StudentConfirmModal
           data={form}
